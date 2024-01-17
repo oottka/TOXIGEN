@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--classifier", type=str)
     parser.add_argument("--generation_mode", type=str) # Can either be "neutral" or "hate", and indicates what you want to generate
     parser.add_argument("--ALICE", default=False, type=bool)
+    parser.add_argument("--max_tokens", default=20, type=int, help="Number of tokens to generate per prompt")
 
     args = parser.parse_args()
 
@@ -43,7 +44,8 @@ def main():
     # --- loop through prompts and generate responses ---
     for prompt in prompts:
         for i in range(args.num_generations_per_prompt):
-            response = language_model(prompt)
+            response = language_model.generate(prompt, max_tokens=args.max_tokens)
+            print("START" + response + " END")
             with open(args.output_file, "a") as f:
                 f.write(response + "\n")
 

@@ -21,15 +21,15 @@ class GPT3(object):
         }
         r = requests.post(self.endpoint_url,
             headers={
-                "Authorization": f"Bearer {self.apikey}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "api-key": f"{self.apikey}"
             },
             json = payload
         )       
         output = json.loads(r.content)
         return output
 
-    def from_prompt(self, prompt, topk=10, max_tokens=10):
+    def generate(self, prompt, topk=10, max_tokens=1):
         output = self.__call__(prompt, topk, max_tokens)
         return output["choices"][0]["text"]
 
