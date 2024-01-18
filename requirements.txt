@@ -1,5 +1,6 @@
 nltk==3.7
 requests==2.27.1
-numpy==1.22.0
-torch==1.10.2
-transformers==4.12.3
+numpy==1.24.0
+python-dotenv==1.0.0
+#torch==1.10.2
+#transformers==4.12.3
