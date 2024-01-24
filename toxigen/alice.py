@@ -84,7 +84,7 @@ def beam_search(
     mode,  # if 1, Toxic, if 0 Neutral
     device,
     end_token="\n",
-    weights=[0.5, 0.5],
+    weights=(0.5, 0.5),
     num_beams=10,
     vocab_size=100,
     max_length=30,
