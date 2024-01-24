@@ -1,6 +1,8 @@
 import requests
 import json
 from toxigen.alice import beam_search
+
+
 class GPT3(object):
     def __init__(self, endpoint_url, apikey):
         self.apikey = apikey
@@ -17,21 +19,20 @@ class GPT3(object):
             "n": 1,
             "stream": False,
             "logprobs": topk,
-            "stop": ["<|endoftext|>", "\\n"]
+            "stop": ["<|endoftext|>", "\\n"],
         }
-        r = requests.post(self.endpoint_url,
-            headers={
-                "Content-Type": "application/json",
-                "api-key": f"{self.apikey}"
-            },
-            json = payload
-        )       
+        r = requests.post(
+            self.endpoint_url,
+            headers={"Content-Type": "application/json", "api-key": f"{self.apikey}"},
+            json=payload,
+        )
         output = json.loads(r.content)
         return output
 
     def generate(self, prompt, topk=10, max_tokens=1):
         output = self.__call__(prompt, topk, max_tokens)
         return output["choices"][0]["text"]
+
 
 class ALICE(object):
     def __init__(self, language_model, classifier, mode, device="cpu"):
@@ -48,4 +49,6 @@ class ALICE(object):
             flag = 0
         else:
             flag = 1
-        return beam_search(prompt, self.language_model, self.classifier, flag, self.device)
+        return beam_search(
+            prompt, self.language_model, self.classifier, flag, self.device
+        )

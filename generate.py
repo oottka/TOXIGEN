@@ -3,6 +3,7 @@ from toxigen.language_models import GPT3, ALICE
 from toxigen.pretrained_classifiers import HateBERT, ToxDectRoBERTa
 import argparse
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_prompt_file", type=str)
@@ -12,9 +13,16 @@ def main():
     parser.add_argument("--endpoint_url", type=str)
     parser.add_argument("--api_key", type=str)
     parser.add_argument("--classifier", type=str)
-    parser.add_argument("--generation_mode", type=str) # Can either be "neutral" or "hate", and indicates what you want to generate
+    parser.add_argument(
+        "--generation_mode", type=str
+    )  # Can either be "neutral" or "hate", and indicates what you want to generate
     parser.add_argument("--ALICE", default=False, type=bool)
-    parser.add_argument("--max_tokens", default=20, type=int, help="Number of tokens to generate per prompt")
+    parser.add_argument(
+        "--max_tokens",
+        default=20,
+        type=int,
+        help="Number of tokens to generate per prompt",
+    )
 
     args = parser.parse_args()
 
@@ -48,6 +56,7 @@ def main():
             print("START" + response + " END")
             with open(args.output_file, "a") as f:
                 f.write(response + "\n")
+
 
 if __name__ == "__main__":
     main()

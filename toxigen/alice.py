@@ -18,10 +18,12 @@ import torch
 import itertools
 from nltk.corpus import stopwords
 
-def omit_(token, score, list1,list2):
-    if token not in list1 and token.replace(' ','') not in list1 and token in list2:
-       return -100
+
+def omit_(token, score, list1, list2):
+    if token not in list1 and token.replace(" ", "") not in list1 and token in list2:
+        return -100
     return score
+
 
 class BeamHypotheses(object):
     def __init__(self, num_beams, max_length, length_penalty, early_stopping):
@@ -49,7 +51,9 @@ class BeamHypotheses(object):
         if len(self) < self.num_beams or score > self.worst_score:
             self.beams.append((score, hyp))
             if len(self) > self.num_beams:
-                sorted_scores = sorted([(s, idx) for idx, (s, _) in enumerate(self.beams)])
+                sorted_scores = sorted(
+                    [(s, idx) for idx, (s, _) in enumerate(self.beams)]
+                )
                 del self.beams[sorted_scores[0][1]]
                 self.worst_score = sorted_scores[1][0]
             else:
@@ -68,33 +72,39 @@ class BeamHypotheses(object):
         else:
             if cur_len is None:
                 cur_len = self.max_length
-            cur_score = best_sum_logprobs / cur_len ** self.length_penalty
+            cur_score = best_sum_logprobs / cur_len**self.length_penalty
             ret = self.worst_score >= cur_score
             return ret
 
-def beam_search(prompt,
-                language_model,
-                classifier,
-                mode, # if 1, Toxic, if 0 Neutral
-                device,
-                end_token="\n",
-                weights=[.5, .5],
-                num_beams=10,
-                vocab_size=100,
-                max_length=30,
-                length_penalty=1):
+
+def beam_search(
+    prompt,
+    language_model,
+    classifier,
+    mode,  # if 1, Toxic, if 0 Neutral
+    device,
+    end_token="\n",
+    weights=[0.5, 0.5],
+    num_beams=10,
+    vocab_size=100,
+    max_length=30,
+    length_penalty=1,
+):
     """Generate sequences for each example with beam search."""
-    vocab_size = min(5, vocab_size) # comment this line out if you want your vocab size over 5---you need to request this from OpenAI.
-    pad_token_id = '<|pad|>'
+    vocab_size = min(
+        5, vocab_size
+    )  # comment this line out if you want your vocab size over 5---you need to request this from OpenAI.
+    pad_token_id = "<|pad|>"
     eos_token_ids = [end_token]
     # generated hypotheses
     generated_hyps = [
-        BeamHypotheses(num_beams, max_length, length_penalty, early_stopping=False) for _ in range(1)
+        BeamHypotheses(num_beams, max_length, length_penalty, early_stopping=False)
+        for _ in range(1)
     ]
-    stops = list(stopwords.words('english'))
-    stops += ['\\', 'n', '.', ',', '!', '\n']
+    stops = list(stopwords.words("english"))
+    stops += ["\\", "n", ".", ",", "!", "\n"]
     # scores for each sentence in the beam
-    beam_scores = torch.zeros((1, num_beams), dtype=torch.float, device='cpu')
+    beam_scores = torch.zeros((1, num_beams), dtype=torch.float, device="cpu")
     # Greedy decoding it is made sure that only tokens of the first beam are considered to avoid sampling the exact same tokens three times
     beam_scores[:, 1:] = -1e9
     beam_scores = beam_scores.view(-1)  # shape (batch_size * num_beams,)
@@ -103,18 +113,18 @@ def beam_search(prompt,
     done = [False for _ in range(1)]
 
     step = 1
-    start_index = len(prompt.split(' '))
+    start_index = len(prompt.split(" "))
     input_ids = [prompt] * num_beams
     outputs = {}
-    while 'choices' not in outputs.keys():
+    while "choices" not in outputs.keys():
         try:
             outputs = language_model(prompt, topk=num_beams)
             print(f"GPT-3 response: {outputs}")
-            if len(outputs['choices'][0]['logprobs']['top_logprobs']) == 0:
+            if len(outputs["choices"][0]["logprobs"]["top_logprobs"]) == 0:
                 continue
         except:
             continue
-    outputs = outputs['choices'][0]['logprobs']['top_logprobs'][0]
+    outputs = outputs["choices"][0]["logprobs"]["top_logprobs"][0]
     tokens = list(outputs.keys())
     tokens = [(k, outputs[k]) for k in tokens]
     for i in range(len(tokens)):
@@ -123,40 +133,91 @@ def beam_search(prompt,
 
     while step < max_length:
         outputs = {}
-        while 'choices' not in outputs.keys():
-            try: 
+        while "choices" not in outputs.keys():
+            try:
                 outputs = language_model(input_ids, topk=vocab_size)
                 print(f"GPT-3 response: {outputs}")
             except:
                 pass
-        scores = [outputs['choices'][i]['logprobs']['top_logprobs'] for i in range(num_beams)]
+        scores = [
+            outputs["choices"][i]["logprobs"]["top_logprobs"] for i in range(num_beams)
+        ]
         full_names = [[list(x.keys()) for x in scores[i]] for i in range(num_beams)]
         scores = [[list(x.values()) for x in scores[i]] for i in range(num_beams)]
-        scores_ = torch.Tensor([[[omit_(full_names[i][0][j], scores[i][0][j], stops, prompt) for j in range(len(scores[i][0]))]] for i in range(num_beams)])
+        scores_ = torch.Tensor(
+            [
+                [
+                    [
+                        omit_(full_names[i][0][j], scores[i][0][j], stops, prompt)
+                        for j in range(len(scores[i][0]))
+                    ]
+                ]
+                for i in range(num_beams)
+            ]
+        )
         scores = scores_.view(num_beams * 1, vocab_size)
-        full_names = list(itertools.chain.from_iterable(list(itertools.chain.from_iterable(full_names))))
-        next_scores = scores + beam_scores[:, None].expand_as(scores)  # (batch_size * num_beams, vocab_size)
-        next_scores = next_scores.view(1, num_beams * vocab_size)  # (batch_size, num_beams * vocab_size)
-        next_scores, next_tokens = torch.topk(next_scores, 2 * num_beams, dim=1, largest=True, sorted=True)
-        next_tokens_names = [full_names[int(next_tokens[0][i])] for i in range(len(next_tokens[0]))]
+        full_names = list(
+            itertools.chain.from_iterable(
+                list(itertools.chain.from_iterable(full_names))
+            )
+        )
+        next_scores = scores + beam_scores[:, None].expand_as(
+            scores
+        )  # (batch_size * num_beams, vocab_size)
+        next_scores = next_scores.view(
+            1, num_beams * vocab_size
+        )  # (batch_size, num_beams * vocab_size)
+        next_scores, next_tokens = torch.topk(
+            next_scores, 2 * num_beams, dim=1, largest=True, sorted=True
+        )
+        next_tokens_names = [
+            full_names[int(next_tokens[0][i])] for i in range(len(next_tokens[0]))
+        ]
         assert next_scores.size()[-1] == len(next_tokens_names) == 2 * num_beams
         pred_texts = []
         for t in next_tokens[0]:
-            pred_text = ' '.join(input_ids[torch.div(t, vocab_size, rounding_mode="trunc")].split(' ')[start_index:]) + full_names[t]
-            pred_texts.append(inputs_ids + pred_text) ### TODO: get the currently appended sentence
-        classifier_inputs = query_llm(pred_texts) ### TODO: query the llm for the answer and use these answers to put into classifier
-        
-        classifier_inputs = [classifier.tokenizer.encode(' '.join(input_ids[torch.div(t, vocab_size, rounding_mode="trunc")].split(' ')[start_index:]) + full_names[t]) for t in next_tokens[0]]
+            pred_text = (
+                " ".join(
+                    input_ids[torch.div(t, vocab_size, rounding_mode="trunc")].split(
+                        " "
+                    )[start_index:]
+                )
+                + full_names[t]
+            )
+            pred_texts.append(
+                inputs_ids + pred_text
+            )  ### TODO: get the currently appended sentence
+        classifier_inputs = query_llm(
+            pred_texts
+        )  ### TODO: query the llm for the answer and use these answers to put into classifier
+
+        classifier_inputs = [
+            classifier.tokenizer.encode(
+                " ".join(
+                    input_ids[torch.div(t, vocab_size, rounding_mode="trunc")].split(
+                        " "
+                    )[start_index:]
+                )
+                + full_names[t]
+            )
+            for t in next_tokens[0]
+        ]
         # torch.div(a, b, rounding_mode='trunc'
         pad_len = max([len(t) for t in classifier_inputs])
-        classifier_inputs = torch.LongTensor([b + [0] * (pad_len - len(b)) for b in classifier_inputs])
-        logits = torch.nn.functional.log_softmax(classifier(classifier_inputs.to(device)).logits, 1)[:, (1-mode)].cpu() # Use index 1 if generating benign text
+        classifier_inputs = torch.LongTensor(
+            [b + [0] * (pad_len - len(b)) for b in classifier_inputs]
+        )
+        logits = torch.nn.functional.log_softmax(
+            classifier(classifier_inputs.to(device)).logits, 1
+        )[
+            :, (1 - mode)
+        ].cpu()  # Use index 1 if generating benign text
         next_scores = (next_scores * weights[0]) + (logits * weights[1])
 
         # next batch beam content
         # list of (batch_size * num_beams) tuple(next hypothesis score, next word, current position in the batch)
         next_batch_beam = []
-        
+
         # for each sentence
         for batch_idx in range(1):
             # if we are done with this sentence
@@ -166,11 +227,15 @@ def beam_search(prompt,
             if done[batch_idx]:
                 assert (
                     len(generated_hyps[batch_idx]) >= num_beams
-                ), "Batch can only be done if at least {} beams have been generated".format(num_beams)
+                ), "Batch can only be done if at least {} beams have been generated".format(
+                    num_beams
+                )
                 assert (
                     eos_token_ids is not None and pad_token_id is not None
                 ), "generated beams >= num_beams -> eos_token_id and pad_token have to be defined"
-                next_batch_beam.extend([(0, pad_token_id, 0)] * num_beams)  # pad the batch
+                next_batch_beam.extend(
+                    [(0, pad_token_id, 0)] * num_beams
+                )  # pad the batch
                 continue
 
             # next sentence beam content
@@ -188,7 +253,8 @@ def beam_search(prompt,
                 # add to generated hypotheses if end of sentence
                 if eos_token_ids is not None and token_id in eos_token_ids:
                     generated_hyps[batch_idx].add(
-                        input_ids[effective_beam_id], score.item(),
+                        input_ids[effective_beam_id],
+                        score.item(),
                     )
                 else:
                     # add next predicted word if it is not eos_token
@@ -235,5 +301,5 @@ def beam_search(prompt,
     best_all = []
     # retrieve best hypotheses
     for i, hypotheses in enumerate(generated_hyps):
-        best_all.append(sorted(hypotheses.beams, key=lambda x: x[0],reverse=True))
+        best_all.append(sorted(hypotheses.beams, key=lambda x: x[0], reverse=True))
     return [p[-1] for p in best_all[0]]
