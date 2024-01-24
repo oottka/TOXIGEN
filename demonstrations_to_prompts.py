@@ -1,5 +1,5 @@
 import argparse
-import numpy as np
+import random
 
 
 def write_and_shuffle_prompts(list_of_strings: list, num_sentences):
@@ -10,18 +10,10 @@ def write_and_shuffle_prompts(list_of_strings: list, num_sentences):
         >>> write_and_shuffle_prompts(list_of_strings)
         "- string2\n- string1\n- string3\n-"
     """
-    if num_sentences > len(list_of_strings):
-        num_sentences = len(list_of_strings)
-    list_of_strings = [
-        list_of_strings[i]
-        for i in np.random.choice(
-            range(len(list_of_strings)), num_sentences, replace=False
-        )
-    ]
-    prompt = ""
-    for s in list_of_strings:
-        prompt += "- {}".format(s.replace("'", ""))
-    prompt += "-"
+    num_sentences = min(num_sentences, len(list_of_strings))
+    list_of_strings = random.sample(list_of_strings, num_sentences)
+
+    prompt = "".join("- {}".format(s.replace("'", "")) for s in list_of_strings)
     return prompt
 
 
