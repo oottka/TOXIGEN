@@ -122,7 +122,7 @@ def beam_search(
             print(f"GPT-3 response: {outputs}")
             if len(outputs["choices"][0]["logprobs"]["top_logprobs"]) == 0:
                 continue
-        except:
+        except Exception:
             continue
     outputs = outputs["choices"][0]["logprobs"]["top_logprobs"][0]
     tokens = list(outputs.keys())
@@ -137,7 +137,7 @@ def beam_search(
             try:
                 outputs = language_model(input_ids, topk=vocab_size)
                 print(f"GPT-3 response: {outputs}")
-            except:
+            except Exception:
                 pass
         scores = [
             outputs["choices"][i]["logprobs"]["top_logprobs"] for i in range(num_beams)
