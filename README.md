@@ -47,7 +47,7 @@ We also include a [Notebook](./notebooks/load_datasets.ipynb) showing how to dow
 To generate data by passing prompts into the pretrained language model (GPT-3) used in this work please use the following command:
 
 ```
-python generate.py --input_prompt_file <path_to_prompt_file.txt> --language_model GPT3 --output_file <path_to_output_file.txt> --num_generations_per_prompt 10 --openai_api_key <your_api_key>
+python generate.py --input_prompt_file <path_to_prompt_file.txt> --language_model GPT3 --output_file <path_to_output_file.txt> --num_generations_per_prompt 10 --api_key <your_api_key> --endpoint_url <full URL to completions endpoint>
 ```
 
 You can choose from a list of [prompt files](./prompts/) that we have used in this work or write your own and point to the file (shown below). A prompt file is a text file with one line per prompt (a string).
@@ -65,7 +65,7 @@ python generate.py --input_prompts <path_to_prompt_file.txt> --language_model GP
 In the [demonstrations](./demonstrations/) directory, you can find the demonstrations we have used to generate the dataset, which will help you in writing your own. Notice that the demonstration files are one sentence per line, and each targets the same group within each file. Once you've written the demonstrations and want to turn them into prompts, you can run this command:
 
 ```
-python make_prompts.py --input_demonstrations <path_to_demo_file.txt> --output-file <path_to_prompt.txt> --demonstrations_per_prompt 5 --num_prompt_to_generate 100
+python demonstrations_to_prompts.py --input_demonstrations <path_to_demo_file.txt> --output_file <path_to_prompt.txt> --demonstrations_per_prompt 5 --num_prompts_to_generate 100
 ```
 
 ## Using checkpoints of pretrained classifiers on ToxiGen
