@@ -1,22 +1,21 @@
 import argparse
-import numpy as np
+import random
+
 
 def write_and_shuffle_prompts(list_of_strings: list, num_sentences):
-    """ 
+    """
     Given a list of prompt sentences, create an engineered prompt
     Example:
         list_of_strings = ["string1", "string2", "string3"]
         >>> write_and_shuffle_prompts(list_of_strings)
         "- string2\n- string1\n- string3\n-"
-    """ 
-    if num_sentences > len(list_of_strings):
-        num_sentences = len(list_of_strings)
-    list_of_strings = [list_of_strings[i] for i in np.random.choice(range(len(list_of_strings)), num_sentences, replace=False)]
-    prompt = ""
-    for s in list_of_strings:
-        prompt += "- {}".format(s.replace("'", ""))
-    prompt += "-"
+    """
+    num_sentences = min(num_sentences, len(list_of_strings))
+    list_of_strings = random.sample(list_of_strings, num_sentences)
+
+    prompt = "".join("- {}".format(s.replace("'", "")) for s in list_of_strings)
     return prompt
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -36,6 +35,7 @@ def main():
             prompt = write_and_shuffle_prompts(text, args.demonstrations_per_prompt)
             f.write(prompt.__repr__()[1:-1])
             f.write("\n")
+
 
 if __name__ == "__main__":
     main()

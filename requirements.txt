@@ -1,6 +1,6 @@
 nltk==3.7
-requests==2.27.1
+requests==2.31.0
 numpy==1.26.3
 pandas==2.1.4
 torch==1.13.1
-transformers==4.12.3
+transformers==4.16.2
